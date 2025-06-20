@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+Resize2x2_8b:    opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(8UC1,  (960x540, 1920x1080))'
+Resize2x2_float: opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(32FC1, (960x540, 1920x1080))'
+Resize4x4_8b:    opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(8UC1,  (480x270, 1920x1080))'
+Resize4x4_float: opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(32FC1, (480x270, 1920x1080))'
+Resize8x8_float: opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(32FC1, (240x135, 1920x1080))'
+
+# 720p, not FHD but it's non-trivial to create FHD tests for optical flow and
+# the cost of creating a separate category for them outweighs the benefit.
+OpticalFlowPyrLK_inc_build_pyramid_720p: opencv_perf_video '*OpticalFlowPyrLK_full/*' '("cv/optflow/frames/720p_%02d.png", 1, 1, (15, 15), 11)'
+OpticalFlowPyrLK_exc_build_pyramid_720p: opencv_perf_video '*OpticalFlowPyrLK_self/*' '("cv/optflow/frames/720p_%02d.png", 1, 1, (15, 15), 11, true)'

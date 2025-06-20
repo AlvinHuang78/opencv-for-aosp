@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+Resize2x2_8b:    opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(8UC1,  (1920x1080, 3840x2160))'
+Resize2x2_float: opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(32FC1, (1920x1080, 3840x2160))'
+Resize4x4_8b:    opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(8UC1,  (960x540,   3840x2160))'
+Resize4x4_float: opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(32FC1, (960x540,   3840x2160))'
+Resize8x8_float: opencv_perf_imgproc '*resizeUpLinearNonExact/*' '(32FC1, (480x270,   3840x2160))'

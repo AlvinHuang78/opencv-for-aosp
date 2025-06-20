@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+GRAY2BGR:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_GRAY2BGR)'
+GRAY2BGRA:  opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_GRAY2BGRA)'
+
+BGR2RGB:    opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_BGR2RGB)'
+BGRA2RGBA:  opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_BGRA2RGBA)'
+BGR2RGBA:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_BGR2RGBA)'
+BGR2BGRA:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_BGR2BGRA)'
+RGBA2BGR:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_RGBA2BGR)'
+BGRA2BGR:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_BGRA2BGR)'
+
+YUVSP2BGR:  opencv_perf_imgproc '*cvtColorYUV420/*' '($PIXEL_FORMAT, COLOR_YUV2BGR_NV12)'
+YUVSP2BGRA: opencv_perf_imgproc '*cvtColorYUV420/*' '($PIXEL_FORMAT, COLOR_YUV2BGRA_NV12)'
+YUVSP2RGB:  opencv_perf_imgproc '*cvtColorYUV420/*' '($PIXEL_FORMAT, COLOR_YUV2RGB_NV12)'
+YUVSP2RGBA: opencv_perf_imgproc '*cvtColorYUV420/*' '($PIXEL_FORMAT, COLOR_YUV2RGBA_NV12)'
+
+RGB2YUV:    opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_RGB2YUV)'
+BGR2YUV:    opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_BGR2YUV)'
+RGBA2YUV:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, CX_RGBA2YUV)'
+BGRA2YUV:   opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, CX_BGRA2YUV)'
+
+YUV2RGB:    opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_YUV2RGB)'
+YUV2BGR:    opencv_perf_imgproc '*cvtColor8u/*'     '($PIXEL_FORMAT, COLOR_YUV2BGR)'
+
+BinaryThreshold: opencv_perf_imgproc '*ThreshFixture_Threshold.Threshold/*' '($PIXEL_FORMAT, 8UC1, THRESH_BINARY)'
+
+SepFilter2D_5x5_U8:  opencv_perf_imgproc '*KleidiCV_SepFilter2D.SepFilter2D/*' '($PIXEL_FORMAT, 8UC1, 5, BORDER_REPLICATE)'
+SepFilter2D_5x5_U16: opencv_perf_imgproc '*KleidiCV_SepFilter2D.SepFilter2D/*' '($PIXEL_FORMAT, 16UC1, 5, BORDER_REPLICATE)'
+SepFilter2D_5x5_S16: opencv_perf_imgproc '*KleidiCV_SepFilter2D.SepFilter2D/*' '($PIXEL_FORMAT, 16SC1, 5, BORDER_REPLICATE)'
+
+GaussianBlur3x3:   opencv_perf_imgproc '*gaussianBlur3x3/*'   '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+GaussianBlur5x5:   opencv_perf_imgproc '*gaussianBlur5x5/*'   '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+GaussianBlur7x7:   opencv_perf_imgproc '*gaussianBlur7x7/*'   '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+GaussianBlur15x15: opencv_perf_imgproc '*gaussianBlur15x15/*' '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+
+GaussianBlur3x3_CustomSigma:   opencv_perf_imgproc '*gaussianBlur3x3_CustomSigma/*'   '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+GaussianBlur5x5_CustomSigma:   opencv_perf_imgproc '*gaussianBlur5x5_CustomSigma/*'   '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+GaussianBlur7x7_CustomSigma:   opencv_perf_imgproc '*gaussianBlur7x7_CustomSigma/*'   '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+GaussianBlur15x15_CustomSigma: opencv_perf_imgproc '*gaussianBlur15x15_CustomSigma/*' '($PIXEL_FORMAT, 8UC1, BORDER_REPLICATE)'
+
+Sobel_Gx: opencv_perf_imgproc '*Border3x3_sobelFilter.sobelFilter/*' '($PIXEL_FORMAT, 16SC1, (1, 0), BORDER_REPLICATE)'
+Sobel_Gy: opencv_perf_imgproc '*Border3x3_sobelFilter.sobelFilter/*' '($PIXEL_FORMAT, 16SC1, (0, 1), BORDER_REPLICATE)'
+
+Dilate3x3:   opencv_perf_imgproc '*Dilate_big.big/*' '($PIXEL_FORMAT, 8UC1, 3)'
+Dilate5x5:   opencv_perf_imgproc '*Dilate_big.big/*' '($PIXEL_FORMAT, 8UC1, 5)'
+Dilate17x17: opencv_perf_imgproc '*Dilate_big.big/*' '($PIXEL_FORMAT, 8UC1, 17)'
+Erode3x3:    opencv_perf_imgproc '*Erode_big.big/*'  '($PIXEL_FORMAT, 8UC1, 3)'
+Erode5x5:    opencv_perf_imgproc '*Erode_big.big/*'  '($PIXEL_FORMAT, 8UC1, 5)'
+Erode17x17:  opencv_perf_imgproc '*Erode_big.big/*'  '($PIXEL_FORMAT, 8UC1, 17)'
+
+Resize_0.5_8b:   opencv_perf_imgproc '*ResizeAreaFast/*' '(8UC1, $PIXEL_FORMAT, 2)'
+
+Scale:           opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 8UC1,  8UC1,  1, 1.234, 4.567)'
+Scale_float_1.0: opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 32FC1, 32FC1, 1, 1,     4.567)'
+Scale_float:     opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 32FC1, 32FC1, 1, 1.234, 4.567)'
+
+MinMax_S8:  opencv_perf_core '*minMaxVals/*' '($PIXEL_FORMAT, 8SC1)'
+MinMax_U8:  opencv_perf_core '*minMaxVals/*' '($PIXEL_FORMAT, 8UC1)'
+MinMax_S16: opencv_perf_core '*minMaxVals/*' '($PIXEL_FORMAT, 16SC1)'
+MinMax_U16: opencv_perf_core '*minMaxVals/*' '($PIXEL_FORMAT, 16UC1)'
+MinMax_S32: opencv_perf_core '*minMaxVals/*' '($PIXEL_FORMAT, 32SC1)'
+MinMax_F32: opencv_perf_core '*minMaxVals/*' '($PIXEL_FORMAT, 32FC1)'
+
+MinMaxLoc_U8: opencv_perf_core '*minMaxLoc/*' '($PIXEL_FORMAT, 8UC1)'
+
+FloatToInt:  opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 32FC1, 8SC1,  1, 1, 0)'
+FloatToUint: opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 32FC1, 8UC1,  1, 1, 0)'
+IntToFloat:  opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 8SC1,  32FC1, 1, 1, 0)'
+UintToFloat: opencv_perf_core '*convertTo/*' '($PIXEL_FORMAT, 8UC1,  32FC1, 1, 1, 0)'
+
+CompareGt: opencv_perf_core '*compare/*' '($PIXEL_FORMAT, 8UC1, CMP_GT)'
+
+InRange_U8:  opencv_perf_core '*inRangeScalar/*' '($PIXEL_FORMAT,  8UC1, 1, 2)'
+InRange_F32: opencv_perf_core '*inRangeScalar/*' '($PIXEL_FORMAT, 32FC1, 1, 2)'
+
+Remap_S16_U8: opencv_perf_imgproc '*Remap/*' '($PIXEL_FORMAT, 8UC1, 16SC2, INTER_NEAREST, BORDER_REPLICATE)'
+Remap_S16Point5_U8: opencv_perf_imgproc '*Remap/*' '($PIXEL_FORMAT, 8UC1, 16SC2, INTER_LINEAR, BORDER_REPLICATE)'
+WarpPerspective: opencv_perf_imgproc '*WarpPerspective/*' '($PIXEL_FORMAT, INTER_NEAREST, BORDER_REPLICATE, 8UC1)'
+WarpPerspectiveNear: opencv_perf_imgproc '*WarpPerspectiveNear/*' '($PIXEL_FORMAT, INTER_NEAREST, BORDER_REPLICATE, 8UC1)'
+
+BlurAndDownsample: opencv_perf_imgproc '*pyrDown/*' '($PIXEL_FORMAT, 8UC1)'
+
+ScharrInterleaved: opencv_perf_video '*calcScharrDeriv/*' '$PIXEL_FORMAT'
+
+Rotate_90_CLOCKWISE_8UC1:  opencv_perf_core '*rotate/*' '($PIXEL_FORMAT, 0, 8UC1)'
+Rotate_90_CLOCKWISE_16SC1: opencv_perf_core '*rotate/*' '($PIXEL_FORMAT, 0, 16SC1)'
+Rotate_90_CLOCKWISE_8UC4:  opencv_perf_core '*rotate/*' '($PIXEL_FORMAT, 0, 8UC4)'
+Rotate_90_CLOCKWISE_16SC4: opencv_perf_core '*rotate/*' '($PIXEL_FORMAT, 0, 16SC4)'

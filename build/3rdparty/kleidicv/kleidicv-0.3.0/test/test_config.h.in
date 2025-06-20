@@ -1,0 +1,23 @@
+// SPDX-FileCopyrightText: 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+#ifndef KLEIDICV_TEST_CONFIG_H
+#define KLEIDICV_TEST_CONFIG_H
+
+// Main test configuration switches.
+
+#cmakedefine KLEIDICV_ALLOCATION_TESTS
+
+// GCC and clang
+#ifdef __GNUC__
+#define KLEIDICV_NO_STRICT_ALIASING_BEGIN \
+  _Pragma("GCC diagnostic push")          \
+      _Pragma("GCC diagnostic ignored \"-Wstrict-aliasing\"")
+#define KLEIDICV_NO_STRICT_ALIASING_END _Pragma("GCC diagnostic pop")
+#else
+#define KLEIDICV_NO_STRICT_ALIASING_BEGIN
+#define KLEIDICV_NO_STRICT_ALIASING_END
+#endif
+
+#endif  // KLEIDICV_TEST_CONFIG_H

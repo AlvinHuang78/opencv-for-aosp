@@ -1,0 +1,984 @@
+////////////////////////////////
+// KleidiCV
+////////////////////////////////
+
+kleidicv_common_cxx_flags = [
+    "-DANDROID",
+    "-O2",
+    "-g0",
+    "-fomit-frame-pointer",
+    "-fno-stack-protector",
+    "-fno-exceptions",
+    "-fno-rtti",
+    "-fno-unroll-loops",
+    "-Wall",
+    "-Wextra",
+    "-Wold-style-cast",
+    "-Wno-shadow",
+    "-mllvm ",
+    "-inline-threshold=10000",
+]
+
+kleidicv_common_include_dirs = [
+    "build",
+    "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv/include",
+    "build/3rdparty/kleidicv/include",
+]
+
+cc_defaults {
+    name: "kleidicv_defaults",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+    cflags: kleidicv_common_cxx_flags,
+    local_include_dirs: kleidicv_common_include_dirs,
+}
+
+cc_library_static {
+    name: "libkleidicv_neon",
+    defaults: ["kleidicv_defaults"],
+
+    cflags: kleidicv_common_cxx_flags + [
+        "-march=armv8-a",
+        "-DKLEIDICV_TARGET_NEON=1",
+    ],
+    srcs: [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv/src/**/*_neon.cpp",
+    ],
+}
+
+cc_library_static {
+    name: "libkleidicv_sve2",
+    defaults: ["kleidicv_defaults"],
+
+    cflags: kleidicv_common_cxx_flags + [
+        "-march=armv8-a+sve2",
+        "-DKLEIDICV_TARGET_SVE2=1",
+    ],
+    srcs: [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv/src/**/*_sve2.cpp",
+    ],
+}
+
+cc_library_static {
+    name: "libkleidicv",
+    defaults: ["kleidicv_defaults"],
+
+    cflags: kleidicv_common_cxx_flags + [
+        "-DKLEIDICV_HAVE_SVE2",
+    ],
+    srcs: [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv/src/**/*_api.cpp",
+    ],
+    whole_static_libs: [
+        "libkleidicv_neon",
+        "libkleidicv_sve2",
+    ],
+}
+
+cc_library_static {
+    name: "libkleidicv_thread",
+    defaults: ["kleidicv_defaults"],
+
+    cflags: [
+        "-DANDROID",
+        "-O2",
+        "-g0",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-Wall",
+        "-Wextra",
+        "-Wold-style-cast",
+        "-Wno-shadow",
+    ],
+    local_include_dirs: kleidicv_common_include_dirs + [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv_thread/include",
+    ],
+    srcs: [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv_thread/src/*.cpp",
+    ],
+    static_libs: [
+        "libkleidicv",
+    ],
+}
+
+cc_library_static {
+    name: "libkleidicv_hal",
+    defaults: ["kleidicv_defaults"],
+
+    cflags: kleidicv_common_cxx_flags + [
+        "-DKLEIDICV_HAVE_SVE2",
+        "-Wno-old-style-cast",
+    ],
+    local_include_dirs: kleidicv_common_include_dirs + [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/adapters/opencv",
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv_thread/include",
+        "modules/core/include",
+        "modules/imgproc/include",
+    ],
+    srcs: [
+        "build/3rdparty/kleidicv/kleidicv-0.3.0/adapters/opencv/kleidicv_hal.cpp",
+    ],
+    static_libs: [
+        "libkleidicv",
+        "libkleidicv_thread"
+    ],
+}
+
+////////////////////////////////
+// Other 3rd-party modules
+////////////////////////////////
+
+cc_library_static {
+    name: "libade",
+    vendor_available: true,
+    compile_multilib: "64",
+
+    cflags: [
+        "-DANDROID",
+        "-O3",
+        "-g",
+        "-fPIC",
+        "-fexceptions",
+        "-DNDEBUG",
+    ],
+    local_include_dirs: [
+        "build/3rdparty/ade/ade-0.1.2e/sources/ade/include",
+    ],
+    srcs: [
+        "build/3rdparty/ade/ade-0.1.2e/sources/ade/source/**/*.cpp",
+    ],
+}
+
+cc_library_static {
+    name: "libcpufeatures",
+    vendor_available: true,
+    compile_multilib: "64",
+
+    cflags: [
+        "-DANDROID",
+        "-O3",
+        "-g",
+        "-fPIC",
+        "-fexceptions",
+        "-DNDEBUG",
+    ],
+    local_include_dirs: [
+        "3rdparty/cpufeatures",
+        "build",
+    ],
+    srcs: [
+        "3rdparty/cpufeatures/cpu-features.c",
+    ],
+}
+
+cc_library_static {
+    name: "libjpeg_opencv",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O1",
+        "-g",
+        "-DNDEBUG",
+    ],
+    local_include_dirs: [
+        "3rdparty/libjpeg"
+    ],
+    srcs: [
+        "3rdparty/libjpeg/*.c",
+    ]
+}
+
+cc_library_static {
+    name: "libjpeg12",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O3",
+        "-g",
+        "-DNDEBUG",
+        "-DNEON_INTRINSICS",
+        "-DNO_GETENV",
+        "-DNO_PUTENV",
+        "-DBITS_IN_JSAMPLE=12"
+    ],
+    local_include_dirs: [
+        "3rdparty/libjpeg-turbo/src",
+        "build",
+        "build/3rdparty/libjpeg-turbo",
+    ],
+    srcs: [
+        "3rdparty/libjpeg-turbo/src/jcapistd.c",
+        "3rdparty/libjpeg-turbo/src/jccoefct.c",
+        "3rdparty/libjpeg-turbo/src/jccolor.c" ,
+        "3rdparty/libjpeg-turbo/src/jcdctmgr.c",
+        "3rdparty/libjpeg-turbo/src/jcdiffct.c",
+        "3rdparty/libjpeg-turbo/src/jclossls.c",
+        "3rdparty/libjpeg-turbo/src/jcmainct.c",
+        "3rdparty/libjpeg-turbo/src/jcprepct.c",
+        "3rdparty/libjpeg-turbo/src/jcsample.c",
+        "3rdparty/libjpeg-turbo/src/jdapistd.c",
+        "3rdparty/libjpeg-turbo/src/jdcoefct.c",
+        "3rdparty/libjpeg-turbo/src/jdcolor.c",
+        "3rdparty/libjpeg-turbo/src/jddctmgr.c",
+        "3rdparty/libjpeg-turbo/src/jddiffct.c",
+        "3rdparty/libjpeg-turbo/src/jdlossls.c",
+        "3rdparty/libjpeg-turbo/src/jdmainct.c",
+        "3rdparty/libjpeg-turbo/src/jdmerge.c",
+        "3rdparty/libjpeg-turbo/src/jdpostct.c",
+        "3rdparty/libjpeg-turbo/src/jdsample.c",
+        "3rdparty/libjpeg-turbo/src/jfdctfst.c",
+        "3rdparty/libjpeg-turbo/src/jfdctint.c",
+        "3rdparty/libjpeg-turbo/src/jidctflt.c",
+        "3rdparty/libjpeg-turbo/src/jidctfst.c",
+        "3rdparty/libjpeg-turbo/src/jidctint.c",
+        "3rdparty/libjpeg-turbo/src/jidctred.c",
+        "3rdparty/libjpeg-turbo/src/jquant1.c",
+        "3rdparty/libjpeg-turbo/src/jquant2.c",
+        "3rdparty/libjpeg-turbo/src/jutils.c",
+    ],
+}
+
+cc_library_static {
+    name: "libjpeg16",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O3",
+        "-g",
+        "-DNDEBUG",
+        "-DNEON_INTRINSICS",
+        "-DNO_GETENV",
+        "-DNO_PUTENV",
+        "-DBITS_IN_JSAMPLE=16"
+    ],
+    local_include_dirs: [
+        "3rdparty/libjpeg-turbo/src",
+        "build",
+        "build/3rdparty/libjpeg-turbo",
+    ],
+    srcs: [
+        "3rdparty/libjpeg-turbo/src/jcapistd.c",
+        "3rdparty/libjpeg-turbo/src/jccolor.c",
+        "3rdparty/libjpeg-turbo/src/jcdiffct.c",
+        "3rdparty/libjpeg-turbo/src/jclossls.c",
+        "3rdparty/libjpeg-turbo/src/jcmainct.c",
+        "3rdparty/libjpeg-turbo/src/jcprepct.c",
+        "3rdparty/libjpeg-turbo/src/jcsample.c",
+        "3rdparty/libjpeg-turbo/src/jdapistd.c",
+        "3rdparty/libjpeg-turbo/src/jdcolor.c",
+        "3rdparty/libjpeg-turbo/src/jddiffct.c",
+        "3rdparty/libjpeg-turbo/src/jdlossls.c",
+        "3rdparty/libjpeg-turbo/src/jdmainct.c",
+        "3rdparty/libjpeg-turbo/src/jdpostct.c",
+        "3rdparty/libjpeg-turbo/src/jdsample.c",
+        "3rdparty/libjpeg-turbo/src/jutils.c",
+    ],
+}
+
+cc_library_static {
+    name: "libjpeg_simd",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O3",
+        "-g",
+        "-DNDEBUG",
+        "-DNEON_INTRINSICS",
+        "-DNO_GETENV",
+        "-DNO_PUTENV",
+    ],
+    local_include_dirs: [
+        "3rdparty/libjpeg-turbo/src",
+        "build",
+        "build/3rdparty/libjpeg-turbo",
+        "build/3rdparty/libjpeg-turbo/src/simd/arm",
+    ],
+    srcs: [
+        "3rdparty/libjpeg-turbo/src/simd/arm/aarch64/jchuff-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/aarch64/jsimd.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jccolor-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jcgray-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jcphuff-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jcsample-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jdcolor-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jdmerge-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jdsample-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jfdctfst-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jfdctint-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jidctfst-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jidctint-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jidctred-neon.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/jquanti-neon.c",
+    ],
+}
+
+cc_library_static {
+    name: "libjpeg-turbo",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O3",
+        "-g",
+        "-DNDEBUG",
+        "-DNEON_INTRINSICS",
+        "-DNO_GETENV",
+        "-DNO_PUTENV",
+    ],
+    export_include_dirs: [
+        "3rdparty/libjpeg-turbo/src",
+        "build",
+        "build/3rdparty/libjpeg-turbo",
+    ],
+    srcs: [
+        "3rdparty/libjpeg-turbo/src/jaricom.c",
+        "3rdparty/libjpeg-turbo/src/jcapimin.c",
+        "3rdparty/libjpeg-turbo/src/jcapistd.c",
+        "3rdparty/libjpeg-turbo/src/jcarith.c",
+        "3rdparty/libjpeg-turbo/src/jccoefct.c",
+        "3rdparty/libjpeg-turbo/src/jccolor.c",
+        "3rdparty/libjpeg-turbo/src/jcdctmgr.c",
+        "3rdparty/libjpeg-turbo/src/jcdiffct.c",
+        "3rdparty/libjpeg-turbo/src/jchuff.c",
+        "3rdparty/libjpeg-turbo/src/jcicc.c",
+        "3rdparty/libjpeg-turbo/src/jcinit.c",
+        "3rdparty/libjpeg-turbo/src/jclhuff.c",
+        "3rdparty/libjpeg-turbo/src/jclossls.c",
+        "3rdparty/libjpeg-turbo/src/jcmainct.c",
+        "3rdparty/libjpeg-turbo/src/jcmarker.c",
+        "3rdparty/libjpeg-turbo/src/jcmaster.c",
+        "3rdparty/libjpeg-turbo/src/jcomapi.c",
+        "3rdparty/libjpeg-turbo/src/jcparam.c",
+        "3rdparty/libjpeg-turbo/src/jcphuff.c",
+        "3rdparty/libjpeg-turbo/src/jcprepct.c",
+        "3rdparty/libjpeg-turbo/src/jcsample.c",
+        "3rdparty/libjpeg-turbo/src/jctrans.c",
+        "3rdparty/libjpeg-turbo/src/jdapimin.c",
+        "3rdparty/libjpeg-turbo/src/jdapistd.c",
+        "3rdparty/libjpeg-turbo/src/jdarith.c",
+        "3rdparty/libjpeg-turbo/src/jdatadst.c",
+        "3rdparty/libjpeg-turbo/src/jdatasrc.c",
+        "3rdparty/libjpeg-turbo/src/jdcoefct.c",
+        "3rdparty/libjpeg-turbo/src/jdcolor.c",
+        "3rdparty/libjpeg-turbo/src/jddctmgr.c",
+        "3rdparty/libjpeg-turbo/src/jddiffct.c",
+        "3rdparty/libjpeg-turbo/src/jdhuff.c",
+        "3rdparty/libjpeg-turbo/src/jdicc.c",
+        "3rdparty/libjpeg-turbo/src/jdinput.c",
+        "3rdparty/libjpeg-turbo/src/jdlhuff.c",
+        "3rdparty/libjpeg-turbo/src/jdlossls.c",
+        "3rdparty/libjpeg-turbo/src/jdmainct.c",
+        "3rdparty/libjpeg-turbo/src/jdmarker.c",
+        "3rdparty/libjpeg-turbo/src/jdmaster.c",
+        "3rdparty/libjpeg-turbo/src/jdmerge.c",
+        "3rdparty/libjpeg-turbo/src/jdphuff.c",
+        "3rdparty/libjpeg-turbo/src/jdpostct.c",
+        "3rdparty/libjpeg-turbo/src/jdsample.c",
+        "3rdparty/libjpeg-turbo/src/jdtrans.c",
+        "3rdparty/libjpeg-turbo/src/jerror.c",
+        "3rdparty/libjpeg-turbo/src/jfdctflt.c",
+        "3rdparty/libjpeg-turbo/src/jfdctfst.c",
+        "3rdparty/libjpeg-turbo/src/jfdctint.c",
+        "3rdparty/libjpeg-turbo/src/jidctflt.c",
+        "3rdparty/libjpeg-turbo/src/jidctfst.c",
+        "3rdparty/libjpeg-turbo/src/jidctint.c",
+        "3rdparty/libjpeg-turbo/src/jidctred.c",
+        "3rdparty/libjpeg-turbo/src/jmemmgr.c",
+        "3rdparty/libjpeg-turbo/src/jmemnobs.c",
+        "3rdparty/libjpeg-turbo/src/jpeg_nbits.c",
+        "3rdparty/libjpeg-turbo/src/jquant1.c",
+        "3rdparty/libjpeg-turbo/src/jquant2.c",
+        "3rdparty/libjpeg-turbo/src/jutils.c",
+        "3rdparty/libjpeg-turbo/src/simd/arm/aarch64/jsimd.c",
+    ],
+    whole_static_libs: [
+        "libjpeg12",
+        "libjpeg16",
+        "libjpeg_simd"
+    ],
+}
+
+cc_library_static {
+    name: "libopenjp2",
+    vendor_available: true,
+    compile_multilib: "64",
+
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O3",
+        "-Wno-implicit-const-int-float-conversion",
+        "-Wno-unused-but-set-variable",
+        "-Wno-missing-prototypes",
+        "-Wno-missing-declarations",
+        "-Wno-documentation",
+        "-Wno-undef",
+        "-Wno-strict-prototypes",
+        "-Wno-cast-function-type",
+        "-Wno-shadow",
+        "-Wno-unused-function",
+    ],
+    local_include_dirs: [
+        "3rdparty/openjpeg/openjp2",
+        "build",
+        "build/3rdparty/openjpeg/openjp2",
+    ],
+    srcs: [
+        "3rdparty/openjpeg/openjp2/thread.c",
+        "3rdparty/openjpeg/openjp2/bio.c",
+        "3rdparty/openjpeg/openjp2/cio.c",
+        "3rdparty/openjpeg/openjp2/dwt.c",
+        "3rdparty/openjpeg/openjp2/event.c",
+        "3rdparty/openjpeg/openjp2/ht_dec.c",
+        "3rdparty/openjpeg/openjp2/image.c",
+        "3rdparty/openjpeg/openjp2/invert.c",
+        "3rdparty/openjpeg/openjp2/j2k.c",
+        "3rdparty/openjpeg/openjp2/jp2.c",
+        "3rdparty/openjpeg/openjp2/mct.c",
+        "3rdparty/openjpeg/openjp2/mqc.c",
+        "3rdparty/openjpeg/openjp2/openjpeg.c",
+        "3rdparty/openjpeg/openjp2/opj_clock.c",
+        "3rdparty/openjpeg/openjp2/pi.c",
+        "3rdparty/openjpeg/openjp2/t1.c",
+        "3rdparty/openjpeg/openjp2/t2.c",
+        "3rdparty/openjpeg/openjp2/tcd.c",
+        "3rdparty/openjpeg/openjp2/tgt.c",
+        "3rdparty/openjpeg/openjp2/function_list.c",
+        "3rdparty/openjpeg/openjp2/opj_malloc.c",
+        "3rdparty/openjpeg/openjp2/sparse_array.c",
+    ],
+}
+
+cc_library_static {
+    name: "libpng_opencv",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+
+    asflags: [
+        "-DPNG_ARM_NEON_OPT=2",
+    ],
+    cflags: [
+        "-DANDROID",
+        "-fPIC",
+        "-O3",
+        "-g",
+        "-DNDEBUG",
+        "-DPNG_ARM_NEON_OPT=2",
+    ],
+    local_include_dirs: [
+        "3rdparty/libpng",
+        "build",
+    ],
+    include_dirs: [
+        "external/zlib",
+    ],
+    srcs: [
+        "3rdparty/libpng/*.c",
+        "3rdparty/libpng/arm/arm_init.c",
+        "3rdparty/libpng/arm/filter_neon_intrinsics.c",
+        "3rdparty/libpng/arm/filter_neon.S",
+        "3rdparty/libpng/arm/palette_neon_intrinsics.c",
+    ],
+}
+
+////////////////////////////////
+// OpenCV modules
+////////////////////////////////
+
+opencv_common_c_flags = [
+    "-DANDROID",
+    "-std=c++11",
+    "-O3",
+    "-g",
+    "-DNDEBUG",
+    "-D_USE_MATH_DEFINES",
+    "-D__OPENCV_BUILD=1",
+    "-D__STDC_CONSTANT_MACROS",
+    "-D__STDC_FORMAT_MACROS",
+    "-D__STDC_LIMIT_MACROS",
+    "-D_FORTIFY_SOURCE=2",
+    "-fPIC",
+    "-fexceptions",
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-funwind-tables",
+    "-fstack-protector-strong",
+    "-fsigned-char",
+    "-fdiagnostics-show-option",
+    "-fvisibility=hidden",
+    "-fvisibility-inlines-hidden",
+    "-no-canonical-prefixes"
+]
+
+opencv_common_export_include_dirs = [
+    "build",
+    "include",
+]
+
+opencv_common_include_dirs = [
+    "build/3rdparty/kleidicv/include",
+    "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv/include",
+    "build/3rdparty/kleidicv/kleidicv-0.3.0/kleidicv_thread/include",
+]
+
+opencv_common_shared_libs = [
+    "libdl",
+    "liblog",
+    "libm",
+]
+
+opencv_common_static_libs = [
+    "libkleidicv",
+    "libkleidicv_hal",
+    "libkleidicv_thread",
+]
+
+cc_defaults {
+    name: "opencv_defaults",
+    vendor_available: true,
+    compile_multilib: "64",
+    rtti: true,
+    cflags: opencv_common_c_flags,
+    export_include_dirs: opencv_common_export_include_dirs,
+    local_include_dirs: opencv_common_include_dirs,
+    shared_libs: opencv_common_shared_libs,
+    whole_static_libs: opencv_common_static_libs,
+}
+
+cc_library_static {
+    name: "libopencv_calib3d",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/calib3d/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/calib3d",
+    ],
+    srcs: [
+        "build/modules/calib3d/opencl_kernels_calib3d.cpp",
+        "modules/calib3d/src/*.cpp",
+        "modules/calib3d/src/usac/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+        "libopencv_features2d",
+        "libopencv_flann",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_core_matmul_neon_dotprod",
+    defaults: ["opencv_defaults"],
+
+    cflags: opencv_common_c_flags + [
+        "-DOPENCV_ALLOCATOR_STATS_COUNTER_TYPE=int",
+        "-DCV_CPU_DISPATCH_MODE=NEON_DOTPROD",
+        "-DCV_CPU_COMPILE_NEON_DOTPROD=1",
+        "-march=armv8.2-a+dotprod",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/core",
+        "modules/core/include",
+    ],
+    srcs: [
+        "build/modules/core/matmul.neon_dotprod.cpp",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_core",
+    defaults: ["opencv_defaults"],
+
+    cflags: opencv_common_c_flags + [
+        "-DOPENCV_ALLOCATOR_STATS_COUNTER_TYPE=int",
+        // Needed by: modules/core/CMakeFiles/opencv_core.dir/src/alloc.cpp
+        "-DHAVE_POSIX_MEMALIGN=1",
+        "-DHAVE_MALLOC_H=1",
+        "-DHAVE_MEMALIGN=1",
+        // Needed by: modules/core/src/parallel/parallel.cpp
+        "-DPARALLEL_ENABLE_PLUGINS=1",
+        // Needed by: modules/core/src/system.cpp
+        "-DHAVE_CPUFEATURES=1",
+    ],
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/core/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "3rdparty/cpufeatures",
+        "build/modules/core",
+    ],
+    include_dirs: [
+        "external/zlib",
+    ],
+    srcs: [
+        "build/modules/core/opencl_kernels_core.cpp",
+        "modules/core/src/*.cpp",
+        "modules/core/src/parallel/*.cpp",
+        "modules/core/src/opencl/*.cpp",
+        "modules/core/src/utils/*.cpp",
+    ],
+    whole_static_libs: opencv_common_static_libs + [
+        "libopencv_core_matmul_neon_dotprod",
+        "libcpufeatures",
+        "libz",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_features2d",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/features2d/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/features2d",
+    ],
+    srcs: [
+        "build/modules/features2d/opencl_kernels_features2d.cpp",
+        "modules/features2d/src/*.cpp",
+        "modules/features2d/src/kaze/*.cpp",
+    ],
+    exclude_srcs: [
+        "modules/features2d/src/fast.avx2.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+        "libopencv_flann",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_flann",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/flann/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/flann",
+    ],
+    srcs: [
+        "modules/flann/src/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_gapi",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/gapi/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/3rdparty/ade/ade-0.1.2e/sources/ade/include",
+        "build/modules/gapi",
+        "modules/gapi/src",
+        "modules/gapi/src/3rdparty/vasot/include",
+    ],
+    srcs: [
+        "modules/gapi/src/*.cpp",
+        "modules/gapi/src/api/*.cpp",
+        "modules/gapi/src/backends/**/*.cpp",
+        "modules/gapi/src/compiler/**/*.cpp",
+        "modules/gapi/src/executor/**/*.cpp",
+        "modules/gapi/src/streaming/**/*.cpp",
+        "modules/gapi/src/3rdparty/vasot/src/**/*.cpp",
+    ],
+    exclude_srcs: [
+        "modules/gapi/src/streaming/onevpl/engine/preproc/utils.cpp",
+    ],
+    static_libs: [
+        "libopencv_calib3d",
+        "libopencv_core",
+        "libopencv_features2d",
+        "libopencv_flann",
+        "libopencv_imgproc",
+        "libopencv_video",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_highgui",
+    defaults: ["opencv_defaults"],
+
+    cflags: opencv_common_c_flags + [
+        "-DENABLE_PLUGINS",
+    ],
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/highgui/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/highgui",
+
+    ],
+    srcs: [
+        "modules/highgui/src/backend.cpp",
+        "modules/highgui/src/roiSelector.cpp",
+        "modules/highgui/src/window.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+        "libopencv_imgcodecs",
+        "libopencv_imgproc",
+        "libopencv_videoio",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_imgcodecs",
+    defaults: ["opencv_defaults"],
+
+    cflags: opencv_common_c_flags + [
+        "-DHAVE_IMGCODEC_SUNRASTER",
+        "-DOPJ_STATIC"
+    ],
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/imgcodecs/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "3rdparty/libjpeg-turbo/src",
+        "3rdparty/libpng",
+        "3rdparty/openjpeg/openjp2",
+        "build/3rdparty/libjpeg-turbo",
+        "build/3rdparty/openjpeg/openjp2",
+        "build/modules/imgcodecs",
+    ],
+    include_dirs: [
+        "external/zlib"
+    ],
+    srcs: [
+        "modules/imgcodecs/src/*.cpp",
+    ],
+    whole_static_libs: opencv_common_static_libs + [
+        "libjpeg-turbo",
+        "libopenjp2",
+        "libpng_opencv",
+        "libz",
+    ],
+    static_libs: [
+        "libopencv_core",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_imgproc",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/imgproc/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/imgproc",
+    ],
+    srcs: [
+        "build/modules/imgproc/opencl_kernels_imgproc.cpp",
+        "modules/imgproc/src/*.cpp",
+    ],
+    exclude_srcs: [
+        "modules/imgproc/src/corner.avx.cpp",
+        "modules/imgproc/src/imgwarp.avx2.cpp",
+        "modules/imgproc/src/imgwarp.lasx.cpp",
+        "modules/imgproc/src/imgwarp.sse4_1.cpp",
+        "modules/imgproc/src/resize.avx2.cpp",
+        "modules/imgproc/src/resize.lasx.cpp",
+        "modules/imgproc/src/resize.sse4_1.cpp",
+        "modules/imgproc/src/sumpixels.avx512_skx.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_ml",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/ml/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/ml",
+    ],
+    srcs: [
+        "modules/ml/src/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_objdetect",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/objdetect/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/objdetect",
+    ],
+    srcs: [
+        "build/modules/objdetect/opencl_kernels_objdetect.cpp",
+        "modules/objdetect/src/**/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_calib3d",
+        "libopencv_core",
+        "libopencv_features2d",
+        "libopencv_flann",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_photo",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/photo/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/photo",
+    ],
+    srcs: [
+        "build/modules/photo/opencl_kernels_photo.cpp",
+        "modules/photo/src/**/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_stitching",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/stitching/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/stitching",
+    ],
+    srcs: [
+        "build/modules/stitching/opencl_kernels_stitching.cpp",
+        "modules/stitching/src/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_calib3d",
+        "libopencv_core",
+        "libopencv_features2d",
+        "libopencv_flann",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_video",
+    defaults: ["opencv_defaults"],
+
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/video/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/video",
+    ],
+    srcs: [
+        "build/modules/video/opencl_kernels_video.cpp",
+        "modules/video/src/**/*.cpp",
+    ],
+    static_libs: [
+        "libopencv_calib3d",
+        "libopencv_core",
+        "libopencv_features2d",
+        "libopencv_flann",
+        "libopencv_imgproc",
+    ],
+}
+
+cc_library_static {
+    name: "libopencv_videoio",
+    defaults: ["opencv_defaults"],
+
+    cflags: opencv_common_c_flags + [
+        "-DENABLE_PLUGINS",
+    ],
+    export_include_dirs: opencv_common_export_include_dirs + [
+        "modules/videoio/include",
+    ],
+    local_include_dirs: opencv_common_include_dirs + [
+        "build/modules/videoio",
+    ],
+    srcs: [
+        "modules/videoio/src/backend_plugin.cpp",
+        "modules/videoio/src/backend_static.cpp",
+        "modules/videoio/src/cap.cpp",
+        "modules/videoio/src/cap_images.cpp",
+        "modules/videoio/src/cap_mjpeg_decoder.cpp",
+        "modules/videoio/src/cap_mjpeg_encoder.cpp",
+        "modules/videoio/src/container_avi.cpp",
+        "modules/videoio/src/videoio_c.cpp",
+        "modules/videoio/src/videoio_registry.cpp",
+    ],
+    static_libs: [
+        "libopencv_core",
+        "libopencv_imgcodecs",
+        "libopencv_imgproc",
+    ],
+}
+
+////////////////////////////////
+// Test app
+////////////////////////////////
+
+cc_binary {
+    name: "opencv_stitching_test",
+    defaults: ["opencv_defaults"],
+    stl: "libc++",
+
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+    srcs: [
+        "samples/android_native_stitching_test/main.cpp"
+    ],
+    static_libs: [
+        "libopencv_calib3d",
+        "libopencv_core",
+        "libopencv_features2d",
+        "libopencv_flann",
+        "libopencv_imgcodecs",
+        "libopencv_imgproc",
+        "libopencv_stitching",
+    ],
+}

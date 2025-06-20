@@ -1,0 +1,160 @@
+// SPDX-FileCopyrightText: 2023 - 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+diff --git a/3rdparty/kleidicv/CMakeLists.txt b/3rdparty/kleidicv/CMakeLists.txt
+new file mode 100644
+index 0000000000..5105214af3
+--- /dev/null
++++ b/3rdparty/kleidicv/CMakeLists.txt
+@@ -0,0 +1,3 @@
++set(KLEIDICV_SOURCE_PATH "${CMAKE_SOURCE_DIR}/kleidicv" CACHE PATH "Directory containing KleidiCV sources")
++
++include("${KLEIDICV_SOURCE_PATH}/adapters/opencv/CMakeLists.txt")
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 56767f2ec7..5ade43b063 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -259,6 +259,8 @@ OCV_OPTION(WITH_CAP_IOS "Enable iOS video capture" ON
+   VERIFY HAVE_CAP_IOS)
+ OCV_OPTION(WITH_CAROTENE "Use NVidia carotene acceleration library for ARM platform" (NOT CV_DISABLE_OPTIMIZATION)
+   VISIBLE_IF (ARM OR AARCH64) AND NOT IOS AND NOT XROS)
++OCV_OPTION(WITH_KLEIDICV "Use KleidiCV library for ARM platforms" OFF
++  VISIBLE_IF (AARCH64))
+ OCV_OPTION(WITH_CPUFEATURES "Use cpufeatures Android library" ON
+   VISIBLE_IF ANDROID
+   VERIFY HAVE_CPUFEATURES)
+@@ -949,6 +951,13 @@ if(NOT DEFINED OpenCV_HAL)
+   set(OpenCV_HAL "OpenCV_HAL")
+ endif()
+ 
++if(WITH_KLEIDICV)
++  ocv_debug_message(STATUS "Enable KleidiCV acceleration")
++  if(NOT ";${OpenCV_HAL};" MATCHES ";kleidicv;")
++    set(OpenCV_HAL "kleidicv;${OpenCV_HAL}")
++  endif()
++endif()
++
+ if(WITH_CAROTENE)
+   ocv_debug_message(STATUS "Enable carotene acceleration")
+   if(NOT ";${OpenCV_HAL};" MATCHES ";carotene;")
+@@ -973,6 +982,10 @@ foreach(hal ${OpenCV_HAL})
+     else()
+       message(STATUS "Carotene: NEON is not available, disabling carotene...")
+     endif()
++  elseif(hal STREQUAL "kleidicv")
++    add_subdirectory(3rdparty/kleidicv)
++    ocv_hal_register(KLEIDICV_HAL_LIBRARIES KLEIDICV_HAL_HEADERS KLEIDICV_HAL_INCLUDE_DIRS)
++    list(APPEND OpenCV_USED_HAL "KleidiCV (ver ${KLEIDICV_HAL_VERSION})")
+   else()
+     ocv_debug_message(STATUS "OpenCV HAL: ${hal} ...")
+     ocv_clear_vars(OpenCV_HAL_LIBRARIES OpenCV_HAL_HEADERS OpenCV_HAL_INCLUDE_DIRS)
+diff --git a/doc/tutorials/introduction/config_reference/config_reference.markdown b/doc/tutorials/introduction/config_reference/config_reference.markdown
+index 3c61ae1c9a..f44e7d8dc2 100644
+--- a/doc/tutorials/introduction/config_reference/config_reference.markdown
++++ b/doc/tutorials/introduction/config_reference/config_reference.markdown
+@@ -621,6 +621,7 @@ Following build options are utilized in `opencv_contrib` modules, as stated [pre
+ `CMAKE_TOOLCHAIN_FILE`
+ 
+ `WITH_CAROTENE`
++`WITH_KLEIDICV`
+ `WITH_CPUFEATURES`
+ `WITH_EIGEN`
+ `WITH_DIRECTX`
+diff --git a/modules/core/include/opencv2/core/hal/interface.h b/modules/core/include/opencv2/core/hal/interface.h
+index c7445a4de4..49a459597b 100644
+--- a/modules/core/include/opencv2/core/hal/interface.h
++++ b/modules/core/include/opencv2/core/hal/interface.h
+@@ -90,6 +90,8 @@ typedef short cv_hal_bf16;
+ 
+ #define CV_MAT_DEPTH_MASK       (CV_DEPTH_MAX - 1)
+ #define CV_MAT_DEPTH(flags)     ((flags) & CV_MAT_DEPTH_MASK)
++#define CV_MAT_CN_MASK          ((CV_CN_MAX - 1) << CV_CN_SHIFT)
++#define CV_MAT_CN(flags)        ((((flags) & CV_MAT_CN_MASK) >> CV_CN_SHIFT) + 1)
+ #define CV_IS_INT_TYPE(flags)   (((1 << CV_MAT_DEPTH(flags)) & 0x1e1f) != 0)
+ #define CV_IS_FLOAT_TYPE(flags) (((1 << CV_MAT_DEPTH(flags)) & 0x1e0) != 0)
+ 
+diff --git a/modules/core/src/convert.dispatch.cpp b/modules/core/src/convert.dispatch.cpp
+index 4a8432fb0e..82cecf90c0 100644
+--- a/modules/core/src/convert.dispatch.cpp
++++ b/modules/core/src/convert.dispatch.cpp
+@@ -195,6 +195,11 @@ void Mat::convertTo(OutputArray dst, int type_, double alpha, double beta) const
+     dst.create( dims, size, dtype, -1, allowTransposed );
+     Mat dstMat = dst.getMat();
+ 
++    if( dims <= 2 ) {
++        int width_in_elements = src.cols * cn;
++        CALL_HAL(convertTo, cv_hal_convertTo, src.data, src.step, src.depth(), dstMat.data, dstMat.step, dstMat.depth(), width_in_elements, src.rows, alpha, beta);
++    }
++
+     BinaryFunc func = noScale ? getConvertFunc(sdepth, ddepth) : getConvertScaleFunc(sdepth, ddepth);
+     double scale[] = {alpha, beta};
+     CV_Assert( func != 0 );
+diff --git a/modules/core/src/hal_replacement.hpp b/modules/core/src/hal_replacement.hpp
+index dc65a25684..5be57f0923 100644
+--- a/modules/core/src/hal_replacement.hpp
++++ b/modules/core/src/hal_replacement.hpp
+@@ -968,6 +968,21 @@ inline int hal_ni_transpose2d(const uchar* src_data, size_t src_step, uchar* dst
+ #define cv_hal_transpose2d hal_ni_transpose2d
+ //! @endcond
+ 
++/**
++   @brief convertTo
++   @param src_data,src_step,src_depth Source image
++   @param dst_data,dst_step,dst_depth Destination image
++   @param width,height Source image dimensions
++   @param scale,shift Dst values = src_value * scale + shift
++*/
++inline int hal_ni_convertTo(const uchar *src_data, size_t src_step, int src_depth,
++              uchar *dst_data, size_t dst_step, int dst_depth, int width,
++              int height, double scale, double shift) { return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++
++//! @cond IGNORED
++#define cv_hal_convertTo hal_ni_convertTo
++//! @endcond
++
+ //! @}
+ 
+ 
+diff --git a/modules/imgproc/src/hal_replacement.hpp b/modules/imgproc/src/hal_replacement.hpp
+index 5c6497bd80..43e89d5b9c 100644
+--- a/modules/imgproc/src/hal_replacement.hpp
++++ b/modules/imgproc/src/hal_replacement.hpp
+@@ -880,6 +880,12 @@ inline int hal_ni_gaussianBlur(const uchar* src_data, size_t src_step, uchar* ds
+ #define cv_hal_gaussianBlur hal_ni_gaussianBlur
+ //! @endcond
+ 
++inline int hal_ni_gaussianBlurBinomial(const uchar*, size_t, uchar*, size_t, int, int, int, int, size_t, size_t, size_t, size_t, size_t, int) { return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++
++//! @cond IGNORED
++#define cv_hal_gaussianBlurBinomial hal_ni_gaussianBlurBinomial
++//! @endcond
++
+ /**
+    @brief Computes Sobel derivatives
+    @param src_depth Depth of source image
+diff --git a/modules/imgproc/src/smooth.dispatch.cpp b/modules/imgproc/src/smooth.dispatch.cpp
+index 3e23187de2..45737b1ee3 100644
+--- a/modules/imgproc/src/smooth.dispatch.cpp
++++ b/modules/imgproc/src/smooth.dispatch.cpp
+@@ -570,6 +570,20 @@ void GaussianBlur(InputArray _src, OutputArray _dst, Size ksize,
+             ocl_GaussianBlur_8UC1(_src, _dst, ksize, CV_MAT_DEPTH(type), kx, ky, borderType)
+     );
+ 
++    if (sigma1 == 0.0 && sigma2 == 0.0 && ksize.height == ksize.width)
++    {
++        Mat src = _src.getMat();
++        Mat dst = _dst.getMat();
++
++        Point ofs;
++        Size wsz(src.cols, src.rows);
++        if(!(borderType & BORDER_ISOLATED))
++            src.locateROI( wsz, ofs );
++
++        CALL_HAL(gaussianBlurBinomial, cv_hal_gaussianBlurBinomial, src.ptr(), src.step, dst.ptr(), dst.step, src.cols, src.rows, sdepth, cn,
++                ofs.x, ofs.y, wsz.width - src.cols - ofs.x, wsz.height - src.rows - ofs.y, ksize.width, borderType&~BORDER_ISOLATED);
++    }
++
+     if(sdepth == CV_8U && ((borderType & BORDER_ISOLATED) || !_src.isSubmatrix()))
+     {
+         std::vector<ufixedpoint16> fkx, fky;

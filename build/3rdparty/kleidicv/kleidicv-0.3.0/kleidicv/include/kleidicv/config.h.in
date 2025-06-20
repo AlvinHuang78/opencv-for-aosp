@@ -1,0 +1,99 @@
+// SPDX-FileCopyrightText: 2023 - 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+#ifndef KLEIDICV_CONFIG_H
+#define KLEIDICV_CONFIG_H
+
+// Main configuration switches.
+
+#cmakedefine01 KLEIDICV_ALWAYS_ENABLE_SME2
+
+#cmakedefine01 KLEIDICV_ALWAYS_ENABLE_SVE2
+
+#cmakedefine01 KLEIDICV_ASSUME_128BIT_SVE2
+
+#cmakedefine01 KLEIDICV_ENABLE_ALL_OPENCV_HAL
+
+#cmakedefine01 KLEIDICV_PREFER_INTERLEAVING_LOAD_STORE
+
+#cmakedefine01 KLEIDICV_EXPERIMENTAL_FEATURE_CANNY
+
+#cmakedefine01 KLEIDICV_CANNY_ALGORITHM_CONFORM_OPENCV
+
+#cmakedefine01 KLEIDICV_EXPERIMENTAL_FEATURE_REMAP
+
+#cmakedefine01 KLEIDICV_EXPERIMENTAL_FEATURE_WARP_PERSPECTIVE
+
+// Set to '1' if compiling NEON code paths, otherwise it is set to '0'.
+#ifndef KLEIDICV_TARGET_NEON
+#define KLEIDICV_TARGET_NEON 0
+#endif
+
+// Set to '1' if compiling SVE2 code paths, otherwise it is set to '0'.
+#ifndef KLEIDICV_TARGET_SVE2
+#define KLEIDICV_TARGET_SVE2 0
+#endif
+
+// Set to '1' if compiling SME2 code paths, otherwise it is set to '0'.
+#ifndef KLEIDICV_TARGET_SME2
+#define KLEIDICV_TARGET_SME2 0
+#endif
+
+// Derived configuration switches and macros below.
+
+#define KLEIDICV_TARGET_NAMESPACE kleidicv
+
+#if KLEIDICV_TARGET_NEON
+#define KLEIDICV_TARGET_FN_ATTRS KLEIDICV_ATTR_SECTION(".text.neon")
+#undef KLEIDICV_TARGET_NAMESPACE
+#define KLEIDICV_TARGET_NAMESPACE kleidicv::neon
+#endif
+
+#if KLEIDICV_TARGET_SVE2
+#define KLEIDICV_TARGET_FN_ATTRS KLEIDICV_ATTR_SECTION(".text.sve2")
+#undef KLEIDICV_TARGET_NAMESPACE
+#define KLEIDICV_TARGET_NAMESPACE kleidicv::sve2
+#endif
+
+#if KLEIDICV_TARGET_SME2
+#undef KLEIDICV_ASSUME_128BIT_SVE2
+#define KLEIDICV_ASSUME_128BIT_SVE2 0
+#define KLEIDICV_TARGET_FN_ATTRS KLEIDICV_ATTR_SECTION(".text.sme2")
+#undef KLEIDICV_TARGET_NAMESPACE
+#define KLEIDICV_TARGET_NAMESPACE kleidicv::sme2
+#define KLEIDICV_LOCALLY_STREAMING __arm_locally_streaming
+#define KLEIDICV_STREAMING_COMPATIBLE __arm_streaming_compatible
+#else
+#define KLEIDICV_LOCALLY_STREAMING
+#define KLEIDICV_STREAMING_COMPATIBLE
+#endif
+
+#ifdef __linux__
+#define KLEIDICV_ATTR_SECTION(section_to_use) \
+  __attribute__((section(section_to_use)))
+#else
+#define KLEIDICV_ATTR_SECTION(x)
+#endif
+
+#define KLEIDICV_ATTR_NOINLINE __attribute__((noinline))
+#define KLEIDICV_ATTR_ALIGNED(alignment) __attribute__((aligned(alignment)))
+
+#define KLEIDICV_LIKELY(cond) __builtin_expect((cond), 1)
+#define KLEIDICV_UNLIKELY(cond) __builtin_expect((cond), 0)
+
+#ifdef __clang__
+#define KLEIDICV_FORCE_LOOP_UNROLL _Pragma("clang loop unroll(full)")
+#else
+// GCC doesn't have clang's unroll(full). 16 is typically plenty.
+#define KLEIDICV_FORCE_LOOP_UNROLL _Pragma("GCC unroll 16")
+#endif
+
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L) || \
+    (defined(__cplusplus) && __cplusplus >= 201703L)
+#define KLEIDICV_NODISCARD [[nodiscard]]
+#else
+#define KLEIDICV_NODISCARD
+#endif
+
+#endif  // KLEIDICV_CONFIG_H

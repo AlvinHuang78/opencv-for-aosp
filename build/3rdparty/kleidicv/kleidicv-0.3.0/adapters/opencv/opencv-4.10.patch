@@ -1,0 +1,307 @@
+// SPDX-FileCopyrightText: 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+// SPDX-FileCopyrightText: Copyright (C) 2000-2022, Intel Corporation, all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2009-2011, Willow Garage Inc., all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2009-2016, NVIDIA Corporation, all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2010-2013, Advanced Micro Devices, Inc., all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2015-2023, OpenCV Foundation, all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2008-2016, Itseez Inc., all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2019-2023, Xperience AI, all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2019-2022, Shenzhen Institute of Artificial Intelligence and Robotics for Society, all rights reserved.
+// SPDX-FileCopyrightText: Copyright (C) 2022-2023, Southern University of Science And Technology, all rights reserved.
+// SPDX-FileCopyrightText: Third party copyrights are property of their respective owners.
+//
+// SPDX-License-Identifier: Apache-2.0
+
+diff --git a/modules/core/src/convert.dispatch.cpp b/modules/core/src/convert.dispatch.cpp
+index 2b4035285f..729cd1dd43 100644
+--- a/modules/core/src/convert.dispatch.cpp
++++ b/modules/core/src/convert.dispatch.cpp
+@@ -281,6 +281,11 @@ void Mat::convertTo(OutputArray dst, int type_, double alpha, double beta) const
+     dst.create(dims, size, dtype);
+     Mat dstMat = dst.getMat();
+ 
++    if( dims <= 2 ) {
++        int width_in_elements = src.cols * cn;
++        CALL_HAL(convertTo, cv_hal_convertTo, src.data, src.step, src.depth(), dstMat.data, dstMat.step, dstMat.depth(), width_in_elements, src.rows, alpha, beta);
++    }
++
+     BinaryFunc func = noScale ? getConvertFunc(sdepth, ddepth) : getConvertScaleFunc(sdepth, ddepth);
+     double scale[] = {alpha, beta};
+     CV_Assert( func != 0 );
+diff --git a/modules/core/src/hal_replacement.hpp b/modules/core/src/hal_replacement.hpp
+index f78608dbad..299b5e54bd 100644
+--- a/modules/core/src/hal_replacement.hpp
++++ b/modules/core/src/hal_replacement.hpp
+@@ -953,6 +953,41 @@ inline int hal_ni_transpose2d(const uchar* src_data, size_t src_step, uchar* dst
+ #define cv_hal_transpose2d hal_ni_transpose2d
+ //! @endcond
+ 
++/**
++   @brief convertTo
++   @param src_data,src_step,src_depth Source image
++   @param dst_data,dst_step,dst_depth Destination image
++   @param width,height Source image dimensions
++   @param scale,shift Dst values = src_value * scale + shift
++*/
++inline int hal_ni_convertTo(const uchar *src_data, size_t src_step, int src_depth,
++              uchar *dst_data, size_t dst_step, int dst_depth, int width,
++              int height, double scale, double shift) { return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++
++//! @cond IGNORED
++#define cv_hal_convertTo hal_ni_convertTo
++//! @endcond
++
++/**
++   @brief inRange
++   @param src_data,src_step,src_depth Source image
++   @param dst_data,dst_step,dst_depth Destination image
++   @param width,height Source image dimensions
++   @param cn number of channels
++   @param lower_bound,upper_bound Dst values = (lower_bound <= src_value) && (src_value <= upper_bound) ? 255 : 0
++*/
++inline int hal_ni_inRange8u(const uchar *src_data, size_t src_step,
++              uchar *dst_data, size_t dst_step, int dst_depth, int width,
++              int height, int cn, uchar lower_bound, uchar upper_bound) { return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++inline int hal_ni_inRange32f(const uchar *src_data, size_t src_step,
++              uchar *dst_data, size_t dst_step, int dst_depth, int width,
++              int height, int cn, double lower_bound, double upper_bound) { return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++
++//! @cond IGNORED
++#define cv_hal_inRange8u hal_ni_inRange8u
++#define cv_hal_inRange32f hal_ni_inRange32f
++//! @endcond
++
+ //! @}
+ 
+ 
+diff --git a/modules/core/src/minmax.cpp b/modules/core/src/minmax.cpp
+index 8c6d8ad9a9..47eb6fdb66 100644
+--- a/modules/core/src/minmax.cpp
++++ b/modules/core/src/minmax.cpp
+@@ -1524,9 +1524,9 @@ void cv::minMaxIdx(InputArray _src, double* minVal,
+         {
+             // minIdx[0] and minIdx[0] are always 0 for "flatten" version
+             if (minIdx)
+-                ofs2idx(src, minIdx[1], minIdx);
++                ofs2idx(src, minIdx[1] + 1, minIdx);
+             if (maxIdx)
+-                ofs2idx(src, maxIdx[1], maxIdx);
++                ofs2idx(src, maxIdx[1] + 1, maxIdx);
+             return;
+         }
+         else if (res != CV_HAL_ERROR_NOT_IMPLEMENTED)
+diff --git a/modules/imgproc/src/hal_replacement.hpp b/modules/imgproc/src/hal_replacement.hpp
+index 773fed9b48..b74ff70f99 100644
+--- a/modules/imgproc/src/hal_replacement.hpp
++++ b/modules/imgproc/src/hal_replacement.hpp
+@@ -328,6 +328,60 @@ inline int hal_ni_remap32f(int src_type, const uchar *src_data, size_t src_step,
+ #define cv_hal_remap32f hal_ni_remap32f
+ //! @endcond
+ 
++/**
++   @brief hal_remap with a short integer map
++   @param src_type source and destination image type
++   @param src_data source image data
++   @param src_step source image step
++   @param src_width source image width
++   @param src_height source image height
++   @param dst_data destination image data
++   @param dst_step destination image step
++   @param dst_width destination image width
++   @param dst_height destination image height
++   @param mapxy map for interleaved x and y values
++   @param mapxy_step mapxy matrix step
++   @param border_type border processing mode (CV_HAL_BORDER_REFLECT, ...)
++   @param border_value values to use for CV_HAL_BORDER_CONSTANT mode
++   @sa cv::remap
++ */
++inline int hal_ni_remap16s(int src_type, const uchar *src_data, size_t src_step, int src_width, int src_height,
++                           uchar *dst_data, size_t dst_step, int dst_width, int dst_height,
++                           const short* mapxy, size_t mapxy_step, int border_type, const double border_value[4])
++{ return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++
++//! @cond IGNORED
++#define cv_hal_remap16s hal_ni_remap16s
++//! @endcond
++
++/**
++   @brief hal_remap with short maps plus fractions
++   @param src_type source and destination image type
++   @param src_data source image data
++   @param src_step source image step
++   @param src_width source image width
++   @param src_height source image height
++   @param dst_data destination image data
++   @param dst_step destination image step
++   @param dst_width destination image width
++   @param dst_height destination image height
++   @param mapxy map for interleaved x and y values
++   @param mapxy_step mapxy matrix step
++   @param mapfrac map for fractional part x and y values (5+5 bits)
++   @param mapfrac_step mapfrac matrix step
++   @param border_type border processing mode (CV_HAL_BORDER_REFLECT, ...)
++   @param border_value values to use for CV_HAL_BORDER_CONSTANT mode
++   @sa cv::remap
++ */
++inline int hal_ni_remap16s16u(int src_type, const uchar *src_data, size_t src_step, int src_width, int src_height,
++                           uchar *dst_data, size_t dst_step, int dst_width, int dst_height,
++                           const short* mapxy, size_t mapxy_step, const unsigned short* mapfrac, size_t mapfrac_step, int border_type, const double border_value[4])
++{ return CV_HAL_ERROR_NOT_IMPLEMENTED; }
++
++//! @cond IGNORED
++#define cv_hal_remap16s16u hal_ni_remap16s16u
++//! @endcond
++
+ /**
+    @brief hal_cvtBGRtoBGR
+    @param src_data source image data
+diff --git a/modules/imgproc/src/imgwarp.cpp b/modules/imgproc/src/imgwarp.cpp
+index d7c9c64c3c..348208b72d 100644
+--- a/modules/imgproc/src/imgwarp.cpp
++++ b/modules/imgproc/src/imgwarp.cpp
+@@ -1819,6 +1819,14 @@ void cv::remap( InputArray _src, OutputArray _dst,
+     {
+         CALL_HAL(remap32f, cv_hal_remap32f, src.type(), src.data, src.step, src.cols, src.rows, dst.data, dst.step, dst.cols, dst.rows,
+                  map1.ptr<float>(), map1.step, map2.ptr<float>(), map2.step, interpolation, borderType, borderValue.val);
++    } else if ((map1.type() == CV_16SC2) && map2.empty() && interpolation == INTER_NEAREST)
++    {
++        CALL_HAL(remap16s, cv_hal_remap16s, src.type(), src.data, src.step, src.cols, src.rows, dst.data, dst.step, dst.cols, dst.rows,
++                 map1.ptr<short>(), map1.step, borderType, borderValue.val);
++    } else if ((map1.type() == CV_16SC2) && (map2.type() == CV_16UC1) && interpolation == INTER_LINEAR)
++    {
++        CALL_HAL(remap16s16u, cv_hal_remap16s16u, src.type(), src.data, src.step, src.cols, src.rows, dst.data, dst.step, dst.cols, dst.rows,
++                 map1.ptr<short>(), map1.step, map2.ptr<unsigned short>(), map2.step, borderType, borderValue.val);
+     }
+ 
+     interpolation &= ~WARP_RELATIVE_MAP;
+diff --git a/modules/imgproc/src/smooth.dispatch.cpp b/modules/imgproc/src/smooth.dispatch.cpp
+index d0f50a73bb..1c308887dc 100644
+--- a/modules/imgproc/src/smooth.dispatch.cpp
++++ b/modules/imgproc/src/smooth.dispatch.cpp
+@@ -654,6 +654,25 @@ void GaussianBlur(InputArray _src, OutputArray _dst, Size ksize,
+             ocl_GaussianBlur_8UC1(_src, _dst, ksize, CV_MAT_DEPTH(type), kx, ky, borderType)
+     );
+ 
++    {
++        Mat src = _src.getMat();
++        Mat dst = _dst.getMat();
++
++        Point ofs;
++        Size wsz(src.cols, src.rows);
++        if(!(borderType & BORDER_ISOLATED))
++            src.locateROI( wsz, ofs );
++
++        if (sigma1 == 0.0 && sigma2 == 0.0 && ksize.height == ksize.width) {
++            CALL_HAL(gaussianBlurBinomial, cv_hal_gaussianBlurBinomial, src.ptr(), src.step, dst.ptr(), dst.step, src.cols, src.rows, sdepth, cn,
++                    ofs.x, ofs.y, wsz.width - src.cols - ofs.x, wsz.height - src.rows - ofs.y, ksize.width, borderType&~BORDER_ISOLATED);
++        }
++
++        CALL_HAL(gaussianBlur, cv_hal_gaussianBlur, src.ptr(), src.step, dst.ptr(), dst.step, src.cols, src.rows, sdepth, cn,
++                ofs.x, ofs.y, wsz.width - src.cols - ofs.x, wsz.height - src.rows - ofs.y, ksize.width, ksize.height,
++                sigma1, sigma2, borderType&~BORDER_ISOLATED);
++    }
++
+     if(sdepth == CV_8U && ((borderType & BORDER_ISOLATED) || !_src.isSubmatrix()))
+     {
+         std::vector<ufixedpoint16> fkx, fky;
+diff --git a/modules/video/src/hal_replacement.hpp b/modules/video/src/hal_replacement.hpp
+new file mode 100644
+index 0000000000..e413dd3894
+--- /dev/null
++++ b/modules/video/src/hal_replacement.hpp
+@@ -0,0 +1,73 @@
++// This file is part of OpenCV project.
++// It is subject to the license terms in the LICENSE file found in the top-level directory
++// of this distribution and at http://opencv.org/license.html.
++
++#ifndef OPENCV_VIDEO_HAL_REPLACEMENT_HPP
++#define OPENCV_VIDEO_HAL_REPLACEMENT_HPP
++
++#include "opencv2/core/hal/interface.h"
++
++#if defined(__clang__)  // clang or MSVC clang
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wunused-parameter"
++#elif defined(_MSC_VER)
++#pragma warning(push)
++#pragma warning(disable : 4100)
++#elif defined(__GNUC__)
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++#endif
++
++/**
++@brief Computes Schaar derivatives with inteleaved layout xyxy...
++@param src_data source image data
++@param src_step source image step
++@param dst_data destination buffer data
++@param dst_step destination buffer step
++@param width image width
++@param height image height
++@param cn source image channels
++**/
++inline int hal_ni_ScharrDeriv(const uchar* src_data, size_t src_step,
++                              short* dst_data, size_t dst_step,
++                              int width, int height, int cn)
++{
++    return CV_HAL_ERROR_NOT_IMPLEMENTED;
++}
++
++//! @cond IGNORED
++#define cv_hal_ScharrDeriv hal_ni_ScharrDeriv
++//! @endcond
++
++//! @}
++
++#if defined(__clang__)
++#pragma clang diagnostic pop
++#elif defined(_MSC_VER)
++#pragma warning(pop)
++#elif defined(__GNUC__)
++#pragma GCC diagnostic pop
++#endif
++
++#include "custom_hal.hpp"
++
++//! @cond IGNORED
++#define CALL_HAL_RET(name, fun, retval, ...) \
++    int res = __CV_EXPAND(fun(__VA_ARGS__, &retval)); \
++    if (res == CV_HAL_ERROR_OK) \
++        return retval; \
++    else if (res != CV_HAL_ERROR_NOT_IMPLEMENTED) \
++        CV_Error_(cv::Error::StsInternal, \
++            ("HAL implementation " CVAUX_STR(name) " ==> " CVAUX_STR(fun) " returned %d (0x%08x)", res, res));
++
++
++#define CALL_HAL(name, fun, ...) \
++    int res = __CV_EXPAND(fun(__VA_ARGS__)); \
++    if (res == CV_HAL_ERROR_OK) \
++        return; \
++    else if (res != CV_HAL_ERROR_NOT_IMPLEMENTED) \
++        CV_Error_(cv::Error::StsInternal, \
++            ("HAL implementation " CVAUX_STR(name) " ==> " CVAUX_STR(fun) " returned %d (0x%08x)", res, res));
++//! @endcond
++
++#endif
+diff --git a/modules/video/src/lkpyramid.cpp b/modules/video/src/lkpyramid.cpp
+index 6d51c0cf1a..0e6f6a324e 100644
+--- a/modules/video/src/lkpyramid.cpp
++++ b/modules/video/src/lkpyramid.cpp
+@@ -50,6 +50,7 @@
+ #endif
+ 
+ #include "opencv2/core/openvx/ovx_defs.hpp"
++#include "hal_replacement.hpp"
+ 
+ #define  CV_DESCALE(x,n)     (((x) + (1 << ((n)-1))) >> (n))
+ 
+@@ -62,6 +63,9 @@ static void calcScharrDeriv(const cv::Mat& src, cv::Mat& dst)
+     int rows = src.rows, cols = src.cols, cn = src.channels(), depth = src.depth();
+     CV_Assert(depth == CV_8U);
+     dst.create(rows, cols, CV_MAKETYPE(DataType<deriv_type>::depth, cn*2));
++
++    CALL_HAL(ScharrDeriv, cv_hal_ScharrDeriv, src.data, src.step, (short*)dst.data, dst.step, cols, rows, cn);
++
+     parallel_for_(Range(0, rows), cv::detail::ScharrDerivInvoker(src, dst), cv::getNumThreads());
+ }
+ 
